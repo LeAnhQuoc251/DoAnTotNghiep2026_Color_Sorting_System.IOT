@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phân loại màu sắc</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='6' cy='12' r='5' fill='%23e53935'/%3E%3Ccircle cx='12' cy='12' r='5' fill='%232e9d48'/%3E%3Ccircle cx='18' cy='12' r='5' fill='%231e7be0'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><i class="r"></i><i class="g"></i><i class="b"></i></div>
+      <div>
+        <h1>PHÂN LOẠI SẢN PHẨM THEO MÀU SẮC</h1>
+        <p>Thị giác máy tính YOLO11 · ESP32 · IoT</p>
+      </div>
+    </div>
+    <div class="pills">
+      <span class="pill" id="pill-esp"><i class="dot"></i><span>ESP32</span></span>
+      <span class="pill" id="pill-cam"><i class="dot"></i><span>Camera</span></span>
+      <span class="clock" id="clock">--:--:--</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <!-- ======================= CỘT TRÁI: CAMERA + KẾT QUẢ ======================= -->
+    <section class="col">
+      <div class="card card-cam">
+        <div class="card-head">
+          <h2>Camera trực tiếp</h2>
+          <span class="hint">Khung vàng là vùng ROI dùng để phân loại</span>
+        </div>
+        <div class="video-wrap">
+          <img id="video" src="/video_feed" alt="Hình ảnh camera trực tiếp">
+        </div>
+      </div>
+
+      <div class="card card-result" id="res-card">
+        <div class="card-head">
+          <h2>Kết quả phân loại</h2>
+          <button class="btn btn-ghost" id="btn-detect" type="button">Nhận diện thử</button>
+        </div>
+        <div class="result">
+          <div class="result-main">
+            <div class="res-top">
+              <div class="swatch" id="res-swatch"></div>
+              <div>
+                <div class="res-color" id="res-color">—</div>
+                <div class="res-meta" id="res-meta">Chưa có sản phẩm nào được phân loại</div>
+              </div>
+            </div>
+            <div class="conf">
+              <div class="conf-label"><span>Độ tin cậy</span><b id="conf-text">—</b></div>
+              <div class="conf-bar"><span id="conf-fill"></span></div>
+            </div>
+            <dl class="res-facts">
+              <div><dt>Phương pháp</dt><dd id="res-method">—</dd></div>
+              <div><dt>Thời gian xử lý</dt><dd id="res-ms">—</dd></div>
+              <div><dt>Gửi ESP32</dt><dd id="res-sent">—</dd></div>
+            </dl>
+          </div>
+          <div class="snapshot">
+            <img id="snapshot" alt="Ảnh chụp lúc phân loại" hidden>
+            <span class="empty" id="snapshot-empty">Ảnh chụp lúc phân loại</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= CỘT PHẢI: ĐIỀU KHIỂN ======================= -->
+    <section class="col">
+      <div class="card card-ctrl">
+        <button class="btn btn-mode" id="btn-mode" type="button">CHẾ ĐỘ: AUTO</button>
+        <div class="run-row">
+          <button class="btn btn-start" id="btn-start" type="button">START</button>
+          <div class="status-light" id="status-light" data-st="0"><i></i><span id="status-text">CHỜ</span></div>
+          <button class="btn btn-stop" id="btn-stop" type="button">STOP</button>
+        </div>
+      </div>
+
+      <div class="card card-count">
+        <div class="card-head">
+          <h2>AUTO · Số lượng sản phẩm</h2>
+          <span class="total">Tổng <b id="cnt-total">0</b></span>
+        </div>
+        <div class="counters">
+          <div class="counter red"><span>ĐỎ</span><b id="cnt-do">0</b></div>
+          <div class="counter green"><span>LỤC</span><b id="cnt-luc">0</b></div>
+          <div class="counter blue"><span>LAM</span><b id="cnt-lam">0</b></div>
+        </div>
+      </div>
+
+      <div class="card card-manual">
+        <div class="card-head"><h2>MANUAL · Điều khiển tay</h2></div>
+        <div class="manual">
+          <button class="btn btn-toggle" id="btn-g1" data-cmd="gate1" type="button"><span>GẠT 1</span><em>TẮT</em></button>
+          <button class="btn btn-toggle" id="btn-g2" data-cmd="gate2" type="button"><span>GẠT 2</span><em>TẮT</em></button>
+          <button class="btn btn-toggle" id="btn-bt" data-cmd="conveyor" type="button"><span>BĂNG TẢI</span><em>TẮT</em></button>
+        </div>
+        <p class="hint" id="manual-hint"></p>
+      </div>
+
+      <div class="card card-history">
+        <div class="card-head"><h2>Lịch sử nhận diện</h2><span class="hint">20 lần gần nhất</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Giờ</th><th>Màu</th><th>Tin cậy</th><th>Phương pháp</th><th>Nguồn</th></tr></thead>
+            <tbody id="history"><tr class="empty-row"><td colspan="5">Chưa có dữ liệu</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <button class="btn btn-exit" id="btn-exit" type="button">THOÁT</button>
+    <span>Dừng băng tải và tắt chương trình trên máy tính</span>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="overlay" id="overlay" hidden>
+    <div class="overlay-box">
+      <b id="overlay-title">Mất kết nối tới máy chủ</b>
+      <p id="overlay-text">Đang thử kết nối lại...</p>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
