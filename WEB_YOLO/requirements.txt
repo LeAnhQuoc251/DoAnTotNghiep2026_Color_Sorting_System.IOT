@@ -1,5 +1,5 @@
 ultralytics>=8.3
 opencv-python
 numpy
-pyserial
+paho-mqtt>=2.0
 flask

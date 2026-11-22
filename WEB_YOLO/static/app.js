@@ -133,7 +133,7 @@ function setCount(id, key, value) {
 function render(s) {
   const e = s.esp;
   setPill($("pill-esp"), e.connected,
-    e.connected ? `ESP32 · ${e.port}` : `ESP32 · chưa kết nối (${e.port})`);
+    e.connected ? `ESP32 · ${e.port}` : `ESP32 · ${e.error || "chưa kết nối"}`);
   setPill($("pill-cam"), s.camera.ok,
     s.camera.ok ? `Camera · ${s.camera.fps} FPS` : "Camera · không có tín hiệu");
   $("clock").textContent = s.server_time;
