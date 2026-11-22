@@ -4,7 +4,9 @@ HỆ THỐNG PHÂN LOẠI SẢN PHẨM THEO MÀU SẮC – YOLO11 + ESP32 + WEB
 Chạy:  py -3.12 app.py            (hoặc nhấp đúp run.bat)
 Mở:    http://localhost:5000      (máy khác trong LAN: http://<IP-máy-này>:5000)
 
-Tuỳ chọn:  --port COM5 | auto     --camera 1     --web-port 8080
+Tuỳ chọn:  --broker 192.168.1.10   --topic csort/abc   --camera 1   --web-port 8080
+
+ESP32 kết nối qua WiFi + MQTT (xem mqtt_link.py), không cần cáp USB.
 """
 import argparse
 import logging
@@ -20,7 +22,7 @@ from datetime import datetime
 from flask import Flask, Response, jsonify, send_from_directory
 
 import config as cfg
-from serial_link import ESP32Link
+from mqtt_link import ESP32Link
 from vision import Vision
 
 STATIC_DIR = os.path.join(cfg.BASE_DIR, "static")
@@ -38,7 +40,7 @@ _busy = False
 
 
 # ------------------------------------------------------------------ phân loại
-def run_classification(send_to_esp):
+def run_classification(send_to_esp, req_id=None):
     """
     send_to_esp=True : ESP32 yêu cầu -> luôn chờ tới lượt (không được bỏ qua,
                        nếu không ESP32 sẽ treo chờ kết quả).
@@ -51,7 +53,7 @@ def run_classification(send_to_esp):
     try:
         t0 = time.time()
         res = vision.classify()
-        sent = esp.send_result(res["loai"]) if send_to_esp else False
+        sent = esp.send_result(res["loai"], req_id) if send_to_esp else False
         info = cfg.LOAI_INFO[res["loai"]]
         _seq += 1
         res.update(
@@ -71,8 +73,8 @@ def run_classification(send_to_esp):
         _classify_lock.release()
 
 
-def on_capture_request():
-    threading.Thread(target=run_classification, args=(True,), daemon=True).start()
+def on_capture_request(req_id):
+    threading.Thread(target=run_classification, args=(True, req_id), daemon=True).start()
 
 
 # ---------------------------------------------------------------------- routes
@@ -130,7 +132,7 @@ def api_cmd(name):
     if name not in actions:
         return jsonify(ok=False, error="Lệnh không hợp lệ"), 404
     if not esp.connected:
-        return jsonify(ok=False, error=f"Chưa kết nối ESP32 ({esp.port or esp.port_cfg})"), 503
+        return jsonify(ok=False, error=f"Chưa kết nối ESP32 ({esp.snapshot()['error'] or esp.port})"), 503
     ok = actions[name]()
     return jsonify(ok=ok, error=None if ok else "Gửi lệnh tới ESP32 thất bại")
 
@@ -181,7 +183,9 @@ def main():
             pass
 
     parser = argparse.ArgumentParser(description="Phân loại sản phẩm theo màu sắc - YOLO11 + ESP32")
-    parser.add_argument("--port", default=cfg.SERIAL_PORT, help="cổng COM của ESP32 hoặc 'auto'")
+    parser.add_argument("--broker", default=cfg.MQTT_BROKER, help="địa chỉ MQTT broker")
+    parser.add_argument("--mqtt-port", type=int, default=cfg.MQTT_PORT)
+    parser.add_argument("--topic", default=cfg.MQTT_TOPIC, help="tiền tố topic MQTT (trùng với ESP32)")
     parser.add_argument("--camera", default=str(cfg.CAMERA_SOURCE), help="chỉ số webcam / file video / URL")
     parser.add_argument("--web-port", type=int, default=cfg.WEB_PORT)
     parser.add_argument("--open", action="store_true", help="tự mở trình duyệt khi server sẵn sàng")
@@ -193,12 +197,13 @@ def main():
 
     source = int(args.camera) if args.camera.lstrip("-").isdigit() else args.camera
     vision = Vision(source)
-    esp = ESP32Link(args.port, cfg.SERIAL_BAUD, on_capture=on_capture_request)
+    esp = ESP32Link(args.broker, args.mqtt_port, args.topic, on_capture=on_capture_request)
 
     print("\n" + "=" * 60)
     print("  WEB ĐIỀU KHIỂN ĐÃ SẴN SÀNG")
     print(f"  Trên máy này : http://localhost:{args.web_port}")
     print(f"  Trong mạng LAN: http://{lan_ip()}:{args.web_port}")
+    print(f"  ESP32 (MQTT) : {args.broker}:{args.mqtt_port}, topic {args.topic}/#")
     print("  Nhấn Ctrl+C để thoát")
     print("=" * 60 + "\n")
 

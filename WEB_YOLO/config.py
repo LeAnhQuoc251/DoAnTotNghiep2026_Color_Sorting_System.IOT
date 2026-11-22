@@ -1,15 +1,22 @@
 """
 Cấu hình hệ thống phân loại sản phẩm theo màu sắc (YOLO11 + ESP32 + Web).
-Chỉ cần sửa file này khi đổi cổng COM, camera, model hoặc vùng ROI.
+Chỉ cần sửa file này khi đổi MQTT broker, camera, model hoặc vùng ROI.
 """
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ----------------------------- ESP32 (UART) -----------------------------
-# Cổng COM nối với ESP32. Đặt "auto" để tự dò cổng USB-UART (CP210x/CH340).
-SERIAL_PORT = "COM8"
-SERIAL_BAUD = 9600
+# ----------------------------- ESP32 (MQTT) -----------------------------
+# ESP32 kết nối WiFi và trao đổi dữ liệu với máy tính qua MQTT broker
+# (không cần cáp USB). Mặc định dùng broker công cộng miễn phí, cần Internet.
+# Muốn chạy hoàn toàn trong mạng LAN: cài Mosquitto trên máy này, đặt
+# MQTT_BROKER = "localhost" và nhập IP máy này vào trang cài đặt WiFi của ESP32.
+MQTT_BROKER = "broker.emqx.io"
+MQTT_PORT = 1883
+# Tiền tố topic, PHẢI trùng với giá trị trên ESP32 (MQTT_TOPIC_MAC_DINH trong
+# firmware hoặc ô "Tiền tố topic" trên trang cài đặt). Trên broker công cộng
+# nên dùng chuỗi riêng, khó đoán để không trùng với hệ thống khác.
+MQTT_TOPIC = "csort/7f3a91"
 
 # ------------------------------- Camera --------------------------------
 # Số thứ tự webcam (0, 1, ...) hoặc đường dẫn video / URL camera IP.
